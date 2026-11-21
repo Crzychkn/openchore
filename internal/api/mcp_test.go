@@ -602,6 +602,8 @@ func TestMCPCoversAPI(t *testing.T) {
 		"GET /auth/oidc/{}/start": "sign-in", "GET /auth/oidc/{}/callback": "sign-in",
 		"POST /auth/upload-link": "QR photo upload for a kid's device",
 		"POST /setup":            "first-run setup",
+		"GET /avatar-catalog": "self-service picture picker metadata",
+		"GET /avatar-catalog/{}": "binary image for household profile views",
 		// Binary uploads can't travel through tool arguments.
 		"POST /upload": "photo upload", "PUT /completions/{}/photo": "photo upload", "POST /admin/ai/test": "photo upload",
 		// These act as the signed-in kid; an API token has no person behind it.

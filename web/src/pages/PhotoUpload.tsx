@@ -1,3 +1,4 @@
+import { avatarSources } from '../avatars';
 import React, { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -79,7 +80,7 @@ export const PhotoUpload: React.FC = () => {
     body = (
       <>
         <header className={styles.head}>
-          {user && <Avatar name={user.name} color={isPersonColor(user.color) ? user.color : null} src={user.avatar_url || null} />}
+          {user && <Avatar name={user.name} color={isPersonColor(user.color) ? user.color : null} {...avatarSources(user)} />}
           <div>
             <p className={styles.kicker}>{t('kid.upload.kicker')}</p>
             {user && <p className={styles.for}>{t('kid.upload.for', { name: user.name })}</p>}

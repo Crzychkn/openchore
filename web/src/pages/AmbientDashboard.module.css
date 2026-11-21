@@ -79,8 +79,7 @@
 }
 .door :global(.oc-glow)::before { top: -250px; }
 .doorHead { position: relative; display: flex; flex-direction: column; align-items: center; text-align: center; }
-.door .avatar, .photo { width: 56px; height: 56px; font-size: 26px; }
-.photo { border-radius: var(--r-avatar, 50%); object-fit: cover; }
+.door .avatar { width: 56px; height: 56px; font-size: 26px; }
 .name {
   margin: var(--space-2) 0 0;
   font-family: var(--font-display);
@@ -141,7 +140,7 @@
   .hero { display: none; }
 }
 @container (max-height: 170px) {
-  .door .avatar, .door .photo, .meta2, .next { display: none; }
+  .door .avatar, .meta2, .next { display: none; }
 }
 
 /* Landscape tablets and up: one screen, no scrolling. */

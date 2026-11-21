@@ -1,3 +1,4 @@
+import { avatarSources } from '../avatars';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -6,7 +7,7 @@ import { api, APIError } from '../api';
 import { useAuth } from '../AuthContext';
 import type { AuthProvider, User } from '../types';
 import {
-  Avatar, blobFor, Button, DayProgress, FamilyMember, HouseScope, Icon, SkinScope,
+  Avatar, Button, DayProgress, FamilyMember, HouseScope, Icon, SkinScope,
   resolveSkin, salutationFor, useMinuteClock, type AvatarSize, type Skin,
 } from '../design';
 import { BrandMark } from '../components/BrandMark/BrandMark';
@@ -37,15 +38,7 @@ const isLocked = (u: User) => u.has_pin || u.auth_providers.length > 0;
 
 /** A person's avatar: their photo when they have one, else their initial. */
 function PersonAvatar({ user, size = 'md', className }: { user: User; size?: AvatarSize; className?: string }) {
-  const [broken, setBroken] = useState(false);
-  const avatar = <Avatar name={user.name} color={user.color} size={size} className={className} />;
-  if (!user.avatar_url || broken) return avatar;
-  return (
-    <span className={styles.photo} style={{ '--blob': blobFor(user.name) } as React.CSSProperties}>
-      {avatar}
-      <img src={user.avatar_url} alt="" onError={() => setBroken(true)} />
-    </span>
-  );
+  return <Avatar name={user.name} color={user.color} size={size} className={className} {...avatarSources(user)} />;
 }
 
 /* ---------------- Doors ---------------- */

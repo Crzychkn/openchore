@@ -52,6 +52,38 @@ test.describe('Theme and Profile', () => {
     await expect(page.locator('[data-theme][data-person]').first()).toHaveAttribute('data-person', 'coral');
   });
 
+  test('child can save a curated avatar and switch back to generated pictures or initials', async ({ page }) => {
+    const name = 'Avatar Tester';
+    await page.route('https://api.dicebear.com/**', route => route.fulfill({ status: 200, contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg"/>' }));
+    const created = await page.request.post('/api/users', { headers: await authHeaders(), data: { name } });
+    expect(created.ok()).toBeTruthy();
+    const { id } = await created.json();
+    try {
+      await selectUser(page, name);
+      await openMe(page, name);
+      await page.getByRole('button', { name: 'Change picture' }).click();
+      await page.getByRole('radio', { name: 'Fox' }).click();
+      await page.getByRole('button', { name: 'Use this picture' }).click();
+      await expect(page.getByRole('dialog', { name: 'Me' }).locator('img')).toHaveAttribute('src', '/api/avatar-catalog/fox');
+
+      await page.reload();
+      await openMe(page, name);
+      await page.getByRole('button', { name: 'Change picture' }).click();
+      await expect(page.getByRole('radio', { name: 'Fox' })).toHaveAttribute('aria-checked', 'true');
+      await page.getByRole('button', { name: 'Generated pictures' }).click();
+      await page.getByRole('radio', { name: 'Style 2' }).click();
+      await page.getByRole('button', { name: 'Use this picture' }).click();
+      await expect(page.getByRole('dialog', { name: 'Me' }).locator('img')).toHaveAttribute('src', /dicebear.*adventurer-neutral/);
+
+      await page.getByRole('button', { name: 'Change picture' }).click();
+      await page.getByRole('radio', { name: 'Initials' }).click();
+      await page.getByRole('button', { name: 'Use this picture' }).click();
+      await expect(page.getByRole('dialog', { name: 'Me' }).locator('img')).toHaveCount(0);
+    } finally {
+      await page.request.delete(`/api/users/${id}`, { headers: await authHeaders() });
+    }
+  });
+
   test('TTS toggle persists preference', async ({ page }) => {
     await selectUser(page, 'Emma');
     await expect(page.locator('body')).toContainText('pts', { timeout: 10_000 });

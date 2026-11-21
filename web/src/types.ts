@@ -105,6 +105,7 @@ export interface User {
   id: number;
   name: string;
   avatar_url: string;
+  avatar_asset_id?: string;
   role: 'admin' | 'child';
   age?: number;
   theme: Theme;

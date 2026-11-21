@@ -1,3 +1,4 @@
+import { avatarSources } from '../../avatars';
 // Small pieces shared by the Today, Week and Rewards screens.
 import React from 'react';
 import { useTranslation } from 'react-i18next';
@@ -22,7 +23,7 @@ export function TopBar({ user, balance, onMe, onManage }: {
   return (
     <div className={s.topbar}>
       <button type="button" className={s.me} onClick={onMe} aria-label={t('kid.me.open', { name: user.name })}>
-        <Avatar name={user.name} color={isPersonColor(user.color) ? user.color : null} src={user.avatar_url || null} />
+        <Avatar name={user.name} color={isPersonColor(user.color) ? user.color : null} {...avatarSources(user)} />
         <span className={s.meDay}>{weekday}</span>
       </button>
       <div className={s.topbarEnd}>

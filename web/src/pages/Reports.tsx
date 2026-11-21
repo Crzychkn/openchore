@@ -1,3 +1,4 @@
+import { avatarSources } from '../avatars';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -22,6 +23,7 @@ interface KidSummary {
   user_id: number;
   name: string;
   avatar_url: string;
+  avatar_asset_id?: string;
   total_assigned: number;
   total_completed: number;
   total_missed: number;
@@ -290,9 +292,7 @@ function ReportBody({ data, colors, aiSummaries, summaryLoading, onSummary }: Re
             {data.kids.map((kid) => (
               <li key={kid.user_id} className={styles.person} data-person={colors[kid.user_id] || undefined}>
                 <div className={styles.personMain}>
-                  {kid.avatar_url
-                    ? <img src={kid.avatar_url} alt="" className={styles.photo} />
-                    : <Avatar name={kid.name} color={colors[kid.user_id]} />}
+                  <Avatar name={kid.name} color={colors[kid.user_id]} {...avatarSources(kid)} />
                   <div className={styles.personText}>
                     <h3 className={styles.personName}>{kid.name}</h3>
                     <p className={styles.personStats}>

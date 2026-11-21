@@ -54,7 +54,6 @@
 .people { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--space-3); margin: 0; padding: 0; list-style: none; }
 .person { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4); border-radius: var(--oc-radius-md); background: var(--surface); }
 .personMain { display: flex; align-items: center; gap: var(--space-3); }
-.photo { width: 40px; height: 40px; flex: none; border-radius: var(--r-avatar, 50%); object-fit: cover; }
 .personText { flex: 1; min-width: 0; }
 .personName { margin: 0; font-size: 17px; line-height: 22px; font-weight: 700; color: var(--ink); }
 .personStats { display: flex; flex-wrap: wrap; gap: 0 var(--space-3); margin: 2px 0 0; font-size: var(--type-meta-size); line-height: var(--type-meta-line); font-weight: 500; color: var(--ink-muted); }

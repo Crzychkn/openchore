@@ -26,6 +26,7 @@ func NewRouter(s *store.Store, dispatcher *webhook.Dispatcher, auth Auth) (*chi.
 	discordNotifier := discord.NewNotifier(s)
 
 	users := NewUserHandler(s, dispatcher)
+	users.avatars = loadAvatarCatalog(os.Getenv("OPENCHORE_AVATAR_DIR"))
 	aiSvc := NewAIServices(s)
 	chores := NewChoreHandler(s, dispatcher, discordNotifier, aiSvc)
 	admin := NewAdminHandler(s, dispatcher)
@@ -56,6 +57,8 @@ func NewRouter(s *store.Store, dispatcher *webhook.Dispatcher, auth Auth) (*chi.
 
 		// Public: list users (for profile selection screen)
 		r.Get("/users", users.List)
+		r.Get("/avatar-catalog", users.avatars.list)
+		r.Get("/avatar-catalog/{id}", users.avatars.serveImage)
 		r.Get("/users/{id}", users.Get)
 
 		// Public, read-only: per-user chores, points and streak. The wall

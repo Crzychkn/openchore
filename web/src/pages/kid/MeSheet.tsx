@@ -1,4 +1,6 @@
-import React, { useId, useRef, useState } from 'react';
+import { avatarAssetURL, avatarSources, type AvatarAsset, type AvatarSelection } from '../../avatars';
+import { api } from '../../api';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
 import {
@@ -26,7 +28,7 @@ interface MeSheetProps {
   onClose: () => void;
   onSkin: (skin: Skin) => void;
   onColor: (color: PersonColor) => void;
-  onAvatar: (url: string) => Promise<void>;
+  onAvatar: (selection: AvatarSelection) => Promise<void>;
   onTts: (on: boolean) => void;
   onPin: () => void;
   onLinked: () => void;
@@ -72,7 +74,7 @@ export function MeSheet(props: MeSheetProps) {
   return (
     <Sheet title={t('kid.me.title')} onClose={onClose}>
       <div className={s.meHead}>
-        <Avatar name={user.name} color={color} size="lg" src={user.avatar_url || null} />
+        <Avatar name={user.name} color={color} size="lg" {...avatarSources(user)} />
         <div className={s.meWho}>
           <span className={s.meName}>{user.name}</span>
           <button type="button" className={s.linkBtn} onClick={() => setPicking(true)}>
@@ -198,21 +200,52 @@ function AvatarPicker({ user, onBack, onClose, onSave }: {
   user: User;
   onBack: () => void;
   onClose: () => void;
-  onSave: (url: string) => Promise<void>;
+  onSave: (selection: AvatarSelection) => Promise<void>;
 }) {
   const { t } = useTranslation();
-  const current = user.avatar_url || '';
-  const [style, setStyle] = useState<string>(() => current.match(/dicebear\.com\/\d+\.x\/([^/]+)\//)?.[1] || AVATAR_STYLES[0]);
+  const [assets, setAssets] = useState<AvatarAsset[] | null>(null);
+  const [catalogFailed, setCatalogFailed] = useState(false);
+  const [generated, setGenerated] = useState(false);
+  const [chosen, setChosen] = useState(user.avatar_asset_id || (user.avatar_url ? null : ''));
+  const [style, setStyle] = useState<string>(() => user.avatar_url?.match(/dicebear\.com\/\d+\.x\/([^/]+)\//)?.[1] || AVATAR_STYLES[0]);
   const [seed, setSeed] = useState(user.name);
   const [saving, setSaving] = useState(false);
-  const preview = avatarUrl(style, seed);
+  const [saveFailed, setSaveFailed] = useState(false);
+  const choices = ['', ...(assets ?? []).map(asset => asset.id)];
+  const catalogRadios = useRovingRadios<string | null>(choices, chosen, setChosen);
+  const generatedRadios = useRovingRadios<string>(AVATAR_STYLES, style, setStyle);
+  const generatedURL = avatarUrl(style, seed);
+  const preview = generated
+    ? { src: generatedURL }
+    : chosen === null || chosen === user.avatar_asset_id
+      ? avatarSources(user)
+      : { src: chosen ? avatarAssetURL(chosen) : null };
+  const selection = generated
+    ? { avatar_url: generatedURL }
+    : chosen === null ? null : { avatar_asset_id: chosen };
+  const canSave = generated
+    ? !!user.avatar_asset_id || generatedURL !== user.avatar_url
+    : chosen !== null && choices.includes(chosen) &&
+      (chosen !== (user.avatar_asset_id || '') || (chosen === '' && !!user.avatar_url));
   const color = isPersonColor(user.color) ? user.color : null;
 
+  useEffect(() => {
+    const controller = new AbortController();
+    api.users.avatarCatalog(controller.signal).then(setAssets).catch(() => {
+      if (!controller.signal.aborted) setCatalogFailed(true);
+    });
+    return () => controller.abort();
+  }, []);
+
   const save = async () => {
+    if (!selection || !canSave) return;
     setSaving(true);
+    setSaveFailed(false);
     try {
-      await onSave(preview);
+      await onSave(selection);
       onBack();
+    } catch {
+      setSaveFailed(true);
     } finally {
       setSaving(false);
     }
@@ -229,28 +262,70 @@ function AvatarPicker({ user, onBack, onClose, onSave }: {
       )}
     >
       <div className={s.pickerPreview}>
-        <Avatar name={user.name} color={color} size="lg" src={preview} />
+        <Avatar name={user.name} color={color} size="lg" {...preview} />
       </div>
-      <div className={s.pickerGrid} role="radiogroup" aria-label={t('kid.me.pictureStyles')}>
-        {AVATAR_STYLES.map((st, i) => (
-          <button
-            key={st}
-            type="button"
-            role="radio"
-            aria-checked={st === style}
-            aria-label={t('kid.me.pictureStyle', { n: i + 1 })}
-            className={clsx(s.pickerItem, st === style && s.pickerItemOn)}
-            onClick={() => setStyle(st)}
-          >
-            <Avatar name={user.name} color={color} size="md" src={avatarUrl(st, seed)} />
-          </button>
-        ))}
-      </div>
-      <div className={s.sheetActions}>
-        <button type="button" className={s.secondaryAction} onClick={() => setSeed(`${user.name}-${Math.random().toString(36).slice(2, 8)}`)}>
-          {t('kid.me.shuffle')}
+      <div className={s.pictureModes}>
+        <button type="button" className={s.secondaryAction} aria-pressed={!generated} onClick={() => setGenerated(false)}>
+          {t('kid.me.pictureLibrary')}
         </button>
-        <button type="button" className={s.primaryAction} onClick={save} disabled={saving || preview === current}>
+        <button type="button" className={s.secondaryAction} aria-pressed={generated} onClick={() => setGenerated(true)}>
+          {t('kid.me.pictureGenerated')}
+        </button>
+      </div>
+      {generated ? (
+        <div className={s.pickerGrid} role="radiogroup" aria-label={t('kid.me.pictureStyles')}>
+          {AVATAR_STYLES.map((st, i) => (
+            <button
+              key={st}
+              type="button"
+              role="radio"
+              ref={el => { generatedRadios.refs.current[i] = el; }}
+              tabIndex={generatedRadios.tabIndex(st)}
+              onKeyDown={e => generatedRadios.onKeyDown(e, i)}
+              aria-checked={st === style}
+              aria-label={t('kid.me.pictureStyle', { n: i + 1 })}
+              className={clsx(s.pickerItem, st === style && s.pickerItemOn)}
+              onClick={() => setStyle(st)}
+            >
+              <Avatar name={user.name} color={color} size="md" src={avatarUrl(st, seed)} />
+            </button>
+          ))}
+        </div>
+      ) : (
+        <>
+          <div className={s.pickerGrid} role="radiogroup" aria-label={t('kid.me.pictureLibrary')}>
+            {choices.map((id, i) => {
+              const asset = assets?.[i - 1];
+              const label = asset ? t(`kid.me.avatarAssets.${id}`, { defaultValue: asset.label }) : t('kid.me.pictureInitials');
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  role="radio"
+                  ref={el => { catalogRadios.refs.current[i] = el; }}
+                  tabIndex={catalogRadios.tabIndex(id)}
+                  onKeyDown={e => catalogRadios.onKeyDown(e, i)}
+                  aria-checked={chosen === id}
+                  className={clsx(s.pickerItem, s.catalogItem, chosen === id && s.pickerItemOn)}
+                  onClick={() => setChosen(id)}
+                >
+                  <Avatar name={user.name} color={color} size="md" src={id ? avatarAssetURL(id) : null} />
+                  <span>{label}</span>
+                </button>
+              );
+            })}
+          </div>
+          {catalogFailed && <p role="status">{t('kid.me.pictureLibraryUnavailable')}</p>}
+        </>
+      )}
+      {saveFailed && <p role="alert">{t('kid.errors.couldntSave')}</p>}
+      <div className={s.sheetActions}>
+        {generated && (
+          <button type="button" className={s.secondaryAction} onClick={() => setSeed(`${user.name}-${Math.random().toString(36).slice(2, 8)}`)}>
+            {t('kid.me.shuffle')}
+          </button>
+        )}
+        <button type="button" className={s.primaryAction} onClick={save} disabled={saving || !canSave}>
           {t('kid.me.savePicture')}
         </button>
       </div>
