@@ -220,13 +220,13 @@ export const KidApp: React.FC = () => {
           onClose={() => setMeOpen(false)}
           onSkin={(x) => { setSkin(x).catch(() => data.showToast(t('kid.errors.couldntSave'))); }}
           onColor={(c) => { setColor(c).catch(() => data.showToast(t('kid.errors.couldntSave'))); }}
-          onAvatar={async (url) => {
+          onAvatar={async (selection) => {
             try {
-              const updated = await api.users.updateAvatar(user.id, url);
+              const updated = await api.users.updateAvatar(user.id, selection);
               setUser({ ...user, ...updated });
             } catch (e) {
               console.error('Failed to update avatar:', e);
-              data.showToast(t('kid.errors.couldntSave'));
+              throw e;
             }
           }}
           onTts={setTtsPref}

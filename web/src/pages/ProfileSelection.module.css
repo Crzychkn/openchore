@@ -311,24 +311,6 @@
 
 .parentBtn > :global(.oc-icon) { width: 18px; height: 18px; color: var(--ink-muted); }
 
-/* ---------- Photo avatars ---------- */
-.photo {
-  position: relative;
-  display: inline-flex;
-  flex: none;
-}
-
-.photo img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  box-sizing: border-box;
-  object-fit: cover;
-  border-radius: var(--r-avatar, var(--blob, 50%));
-  border: var(--outline-w) solid var(--line);
-}
-
 /* ---------- Family strip ---------- */
 .family {
   margin-top: 20px;

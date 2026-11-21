@@ -1,3 +1,4 @@
+import { avatarSources } from '../avatars';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -316,9 +317,7 @@ function Door({ p, now, fmtTime }: { p: PersonDay; now: Date; fmtTime: (d: Date)
   return (
     <SkinScope skin={skin} color={p.user.color} door className={styles.door} role="group" aria-labelledby={nameId}>
       <div className={styles.doorHead}>
-        {p.user.avatar_url
-          ? <img src={p.user.avatar_url} alt="" className={styles.photo} />
-          : <Avatar name={p.user.name} color={p.user.color} size="lg" className={styles.avatar} />}
+        <Avatar name={p.user.name} color={p.user.color} size="lg" className={styles.avatar} {...avatarSources(p.user)} />
         <h2 id={nameId} className={styles.name}>{p.user.name}</h2>
         <div className={styles.meta}>
           <span className={left === 0 && p.total > 0 ? styles.allDone : undefined}>

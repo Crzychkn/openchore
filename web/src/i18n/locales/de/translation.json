@@ -1079,6 +1079,15 @@
       "manageHint": "Aufgaben, Personen und Belohnungen",
       "open": "{{name}}: Einstellungen",
       "pictureStyle": "Stil {{n}}",
+      "pictureLibrary": "Bilderbibliothek",
+      "pictureGenerated": "Generierte Bilder",
+      "pictureInitials": "Initialen",
+      "pictureLibraryUnavailable": "Die Bilderbibliothek konnte nicht geladen werden.",
+      "avatarAssets": {
+        "fox": "Fuchs",
+        "saturn": "Saturn",
+        "sprout": "Setzling"
+      },
       "pictureStyles": "Bildstile",
       "pictureTitle": "Dein Bild",
       "readAloud": "Aufgaben vorlesen",

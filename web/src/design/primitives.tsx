@@ -50,6 +50,7 @@ export interface AvatarProps {
   /** An optional picture (e.g. the person's chosen avatar). It sits on their
    *  colour in the skin's avatar shape; the initial shows until it loads. */
   src?: string | null;
+  fallbackSrc?: string | null;
   className?: string;
   style?: React.CSSProperties;
 }
@@ -58,19 +59,21 @@ export interface AvatarProps {
  * A person's initial on their own colour. Decorative: always pair it with the
  * name in text nearby.
  */
-export function Avatar({ name, color, size = 'md', src, className, style }: AvatarProps) {
+export function Avatar({ name, color, size = 'md', src, fallbackSrc, className, style }: AvatarProps) {
   const initial = Array.from(name.trim())[0]?.toUpperCase() ?? '?';
   const [failed, setFailed] = React.useState<string | null>(null);
-  const showImg = !!src && failed !== src;
+  const [failedFallback, setFailedFallback] = React.useState<string | null>(null);
+  const primary = src && failed !== src ? src : null;
+  const image = primary || (failedFallback !== fallbackSrc ? fallbackSrc : null);
   return (
     <span
-      className={clsx('oc-avatar', `oc-avatar--${size}`, showImg && 'oc-avatar--img', className)}
+      className={clsx('oc-avatar', `oc-avatar--${size}`, image && 'oc-avatar--img', className)}
       data-person={color || undefined}
       aria-hidden
       style={{ '--blob': blobFor(name), ...style } as React.CSSProperties}
     >
       {initial}
-      {showImg && <img src={src} alt="" draggable={false} onError={() => setFailed(src)} />}
+      {image && <img key={image} src={image} alt="" draggable={false} onError={() => primary ? setFailed(image) : setFailedFallback(image)} />}
     </span>
   );
 }

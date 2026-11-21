@@ -700,6 +700,9 @@
   cursor: pointer;
 }
 .pickerItemOn { border-color: var(--ink); }
+.pictureModes { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-3); }
+.pictureModes button[aria-pressed="true"] { border-color: var(--ink); }
+.catalogItem { min-height: 64px; height: auto; padding: var(--space-1); font-size: 0.75rem; overflow-wrap: anywhere; }
 
 /* ---------- sheet contents (photo proof, pickers) ---------- */
 .sheetLead { display: flex; flex-direction: column; gap: var(--space-1); margin: 0 0 var(--space-4); font-size: 15px; }

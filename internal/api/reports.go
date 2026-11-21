@@ -48,6 +48,7 @@ type KidSummary struct {
 	UserID         int64   `json:"user_id"`
 	Name           string  `json:"name"`
 	AvatarURL      string  `json:"avatar_url"`
+	AvatarAssetID  string  `json:"avatar_asset_id"`
 	TotalAssigned  int     `json:"total_assigned"`
 	TotalCompleted int     `json:"total_completed"`
 	TotalMissed    int     `json:"total_missed"`
@@ -149,6 +150,7 @@ func (h *ReportsHandler) GetReports(w http.ResponseWriter, r *http.Request) {
 			UserID:         k.UserID,
 			Name:           k.Name,
 			AvatarURL:      k.AvatarURL,
+			AvatarAssetID:  k.AvatarAssetID,
 			TotalAssigned:  k.TotalAssigned,
 			TotalCompleted: k.TotalCompleted,
 			TotalMissed:    missed,

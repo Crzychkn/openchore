@@ -99,6 +99,7 @@ type User struct {
 	ID             int64     `json:"id"`
 	Name           string    `json:"name"`
 	AvatarURL      string    `json:"avatar_url"`
+	AvatarAssetID  string    `json:"avatar_asset_id"`
 	Role           string    `json:"role"`
 	Age            *int      `json:"age,omitempty"`
 	Theme          string    `json:"theme,omitempty"`

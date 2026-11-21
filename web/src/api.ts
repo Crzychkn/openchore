@@ -1,3 +1,4 @@
+import type { AvatarAsset, AvatarSelection } from './avatars';
 import type { User, PersonColor, AuthSession, AuthProvider, LinkedIdentity, ScheduledChore, Chore, ChoreSchedule, OwnChore, OwnChoreInput, PointsData, PointBalance, PendingCompletion, Reward, RewardRedemption, RewardCommitment, SharedCommitmentPool, RedemptionHistory, UserStreakData, StreakRewardItem, ChoreTrigger, Webhook, WebhookDelivery, UserDecayConfig, APIToken, AIStatus, AIReviewResult, AIConfig, AIConnectionUpdate, AdminAuthConfig, AuthProviderInput, SignInOptions, Farm, Pet, PetItem, PetPick, PetSpecies } from './types';
 
 const API_BASE = '/api';
@@ -150,10 +151,11 @@ export const api = {
         method: 'PUT',
         body: JSON.stringify({ theme }),
       }),
-    updateAvatar: (id: number, avatar_url: string) =>
+    avatarCatalog: (signal: AbortSignal) => fetchPublic<AvatarAsset[]>('/avatar-catalog', { signal }),
+    updateAvatar: (id: number, selection: AvatarSelection) =>
       fetchWithAuth<User>(`/users/${id}/avatar`, {
         method: 'PUT',
-        body: JSON.stringify({ avatar_url }),
+        body: JSON.stringify(selection),
       }),
     updateLineColor: (id: number, line_color: string) =>
       fetchWithAuth<User>(`/users/${id}/line-color`, {

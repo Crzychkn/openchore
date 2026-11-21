@@ -84,8 +84,8 @@ func (s *Store) GetUser(ctx context.Context, id int64) (*model.User, error) {
 	u := &model.User{}
 	var paused int
 	err := s.db.QueryRowContext(ctx,
-		`SELECT id, name, avatar_url, role, age, theme, line_color, color, paused, pin_hash, pin_length, session_version, created_at FROM users WHERE id = ?`, id).
-		Scan(&u.ID, &u.Name, &u.AvatarURL, &u.Role, &u.Age, &u.Theme, &u.LineColor, &u.Color, &paused, &u.PinHash, &u.PinLength, &u.SessionVersion, &u.CreatedAt)
+		`SELECT id, name, avatar_url, COALESCE(avatar_asset_id, ''), role, age, theme, line_color, color, paused, pin_hash, pin_length, session_version, created_at FROM users WHERE id = ?`, id).
+		Scan(&u.ID, &u.Name, &u.AvatarURL, &u.AvatarAssetID, &u.Role, &u.Age, &u.Theme, &u.LineColor, &u.Color, &paused, &u.PinHash, &u.PinLength, &u.SessionVersion, &u.CreatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -112,7 +112,7 @@ func (s *Store) GetUser(ctx context.Context, id int64) (*model.User, error) {
 
 func (s *Store) ListUsers(ctx context.Context) ([]model.User, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, name, avatar_url, role, age, theme, line_color, color, paused, pin_hash, pin_length, session_version, created_at FROM users ORDER BY name`)
+		`SELECT id, name, avatar_url, COALESCE(avatar_asset_id, ''), role, age, theme, line_color, color, paused, pin_hash, pin_length, session_version, created_at FROM users ORDER BY name`)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +120,7 @@ func (s *Store) ListUsers(ctx context.Context) ([]model.User, error) {
 	for rows.Next() {
 		var u model.User
 		var paused int
-		if err := rows.Scan(&u.ID, &u.Name, &u.AvatarURL, &u.Role, &u.Age, &u.Theme, &u.LineColor, &u.Color, &paused, &u.PinHash, &u.PinLength, &u.SessionVersion, &u.CreatedAt); err != nil {
+		if err := rows.Scan(&u.ID, &u.Name, &u.AvatarURL, &u.AvatarAssetID, &u.Role, &u.Age, &u.Theme, &u.LineColor, &u.Color, &paused, &u.PinHash, &u.PinLength, &u.SessionVersion, &u.CreatedAt); err != nil {
 			rows.Close()
 			return nil, err
 		}
@@ -1212,10 +1212,27 @@ func (s *Store) ListSettings(ctx context.Context) (map[string]string, error) {
 // --- Users (update) ---
 
 func (s *Store) UpdateUser(ctx context.Context, u *model.User) error {
+	return s.UpdateUserWithAvatar(ctx, u, "")
+}
+
+func (s *Store) UpdateUserWithAvatar(ctx context.Context, u *model.User, avatarURL string) error {
 	paused := boolToInt(u.Paused)
-	_, err := s.db.ExecContext(ctx,
-		`UPDATE users SET name=?, avatar_url=?, role=?, age=?, theme=?, line_color=?, color=?, paused=? WHERE id=?`,
-		u.Name, u.AvatarURL, u.Role, u.Age, u.Theme, u.LineColor, u.Color, paused, u.ID)
+	_, err := s.db.ExecContext(ctx, `
+		UPDATE users SET name=?, role=?, age=?, theme=?, line_color=?, color=?, paused=?,
+			avatar_url=COALESCE(NULLIF(?, ''), avatar_url),
+			avatar_asset_id=CASE WHEN ? <> '' THEN NULL ELSE avatar_asset_id END
+		WHERE id=?`,
+		u.Name, u.Role, u.Age, u.Theme, u.LineColor, u.Color, paused, avatarURL, avatarURL, u.ID)
+	return err
+}
+
+// UpdateAvatarSelection keeps the previous legacy URL as a fallback for
+// catalog selections. An explicit legacy or initials selection replaces it.
+func (s *Store) UpdateAvatarSelection(ctx context.Context, id int64, assetID, avatarURL string) error {
+	_, err := s.db.ExecContext(ctx, `
+		UPDATE users SET avatar_asset_id=NULLIF(?, ''),
+			avatar_url=CASE WHEN ? = '' THEN ? ELSE avatar_url END
+		WHERE id=?`, assetID, assetID, avatarURL, id)
 	return err
 }
 
@@ -3490,7 +3507,7 @@ const participantFilter = `(u.role = 'child'
 // ListNonPausedChildren returns all child users that are not paused.
 func (s *Store) ListNonPausedChildren(ctx context.Context) ([]model.User, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, name, avatar_url, role, age, theme, line_color, color, paused, created_at FROM users WHERE role = 'child' AND paused = 0 ORDER BY name`)
+		`SELECT id, name, avatar_url, COALESCE(avatar_asset_id, ''), role, age, theme, line_color, color, paused, created_at FROM users WHERE role = 'child' AND paused = 0 ORDER BY name`)
 	if err != nil {
 		return nil, err
 	}
@@ -3499,7 +3516,7 @@ func (s *Store) ListNonPausedChildren(ctx context.Context) ([]model.User, error)
 	for rows.Next() {
 		var u model.User
 		var paused int
-		if err := rows.Scan(&u.ID, &u.Name, &u.AvatarURL, &u.Role, &u.Age, &u.Theme, &u.LineColor, &u.Color, &paused, &u.CreatedAt); err != nil {
+		if err := rows.Scan(&u.ID, &u.Name, &u.AvatarURL, &u.AvatarAssetID, &u.Role, &u.Age, &u.Theme, &u.LineColor, &u.Color, &paused, &u.CreatedAt); err != nil {
 			return nil, err
 		}
 		u.Paused = paused == 1
@@ -3676,8 +3693,8 @@ func (s *Store) GetUserByName(ctx context.Context, name string) (*model.User, er
 	u := &model.User{}
 	var paused int
 	err := s.db.QueryRowContext(ctx,
-		`SELECT id, name, avatar_url, role, age, theme, line_color, color, paused, pin_hash, pin_length, created_at FROM users WHERE LOWER(name) = LOWER(?)`, name).
-		Scan(&u.ID, &u.Name, &u.AvatarURL, &u.Role, &u.Age, &u.Theme, &u.LineColor, &u.Color, &paused, &u.PinHash, &u.PinLength, &u.CreatedAt)
+		`SELECT id, name, avatar_url, COALESCE(avatar_asset_id, ''), role, age, theme, line_color, color, paused, pin_hash, pin_length, created_at FROM users WHERE LOWER(name) = LOWER(?)`, name).
+		Scan(&u.ID, &u.Name, &u.AvatarURL, &u.AvatarAssetID, &u.Role, &u.Age, &u.Theme, &u.LineColor, &u.Color, &paused, &u.PinHash, &u.PinLength, &u.CreatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -4030,6 +4047,7 @@ type KidSummaryRow struct {
 	UserID         int64
 	Name           string
 	AvatarURL      string
+	AvatarAssetID  string
 	TotalAssigned  int
 	TotalCompleted int
 	PointsEarned   int
@@ -4043,6 +4061,7 @@ func (s *Store) ReportKidSummaries(ctx context.Context, startDate, endDate strin
 			u.id,
 			u.name,
 			u.avatar_url,
+			COALESCE(u.avatar_asset_id, ''),
 			COALESCE(completed.cnt, 0) AS total_completed,
 			COALESCE(missed.cnt, 0) AS total_missed,
 			COALESCE(earned.total, 0) AS points_earned,
@@ -4086,7 +4105,7 @@ func (s *Store) ReportKidSummaries(ctx context.Context, startDate, endDate strin
 	for rows.Next() {
 		var r KidSummaryRow
 		var totalMissed int
-		if err := rows.Scan(&r.UserID, &r.Name, &r.AvatarURL, &r.TotalCompleted, &totalMissed, &r.PointsEarned, &r.CurrentStreak); err != nil {
+		if err := rows.Scan(&r.UserID, &r.Name, &r.AvatarURL, &r.AvatarAssetID, &r.TotalCompleted, &totalMissed, &r.PointsEarned, &r.CurrentStreak); err != nil {
 			return nil, err
 		}
 		r.TotalAssigned = r.TotalCompleted + totalMissed

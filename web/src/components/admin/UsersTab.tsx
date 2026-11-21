@@ -1,3 +1,4 @@
+import { avatarSources } from '../../avatars';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
@@ -118,7 +119,7 @@ const UserForm: React.FC<{
         theme: skin,
         // Empty on create: the server assigns the next free colour.
         ...(color ? { color } : {}),
-        avatar_url: `https://api.dicebear.com/9.x/avataaars-neutral/svg?seed=${encodeURIComponent(name)}`,
+        ...(!user ? { avatar_url: `https://api.dicebear.com/9.x/avataaars-neutral/svg?seed=${encodeURIComponent(name)}` } : {}),
       };
       if (user) {
         // Promoting someone without a credential: give them the PIN first.
@@ -300,7 +301,7 @@ export const UsersTab: React.FC = () => {
           return (
             <div key={u.id} className={styles.item}>
               <div className={clsx(ui.row, ui.rowWrap, u.paused && ui.rowMuted)}>
-                <Avatar name={u.name} color={color} size="md" />
+                <Avatar name={u.name} color={color} size="md" {...avatarSources(u)} />
                 <div className={ui.rowMain}>
                   <span className={ui.rowTitle}>{u.name}</span>
                   <span className={ui.rowMeta}>

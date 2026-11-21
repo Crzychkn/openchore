@@ -15,6 +15,7 @@ import (
 type UserHandler struct {
 	store      *store.Store
 	dispatcher *webhook.Dispatcher
+	avatars    avatarCatalog
 }
 
 func NewUserHandler(s *store.Store, dispatcher *webhook.Dispatcher) *UserHandler {
@@ -145,9 +146,6 @@ func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) {
 	if req.Name != "" {
 		existing.Name = req.Name
 	}
-	if req.AvatarURL != "" {
-		existing.AvatarURL = req.AvatarURL
-	}
 	roleChanged := false
 	if req.Role != "" && req.Role != existing.Role {
 		if req.Role != model.RoleAdmin && req.Role != model.RoleChild {
@@ -182,7 +180,7 @@ func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) {
 		existing.Color = req.Color
 	}
 
-	if err := h.store.UpdateUser(r.Context(), existing); err != nil {
+	if err := h.store.UpdateUserWithAvatar(r.Context(), existing, req.AvatarURL); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to update user")
 		return
 	}
@@ -194,6 +192,10 @@ func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusInternalServerError, "failed to revoke sessions")
 			return
 		}
+	}
+	if req.AvatarURL != "" {
+		existing.AvatarURL = req.AvatarURL
+		existing.AvatarAssetID = ""
 	}
 	writeJSON(w, http.StatusOK, existing)
 }
@@ -252,28 +254,34 @@ func (h *UserHandler) UpdateAvatar(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		AvatarURL string `json:"avatar_url"`
+		AvatarURL     *string `json:"avatar_url"`
+		AvatarAssetID *string `json:"avatar_asset_id"`
 	}
-	if err := decodeJSON(r, &req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid request body")
-		return
-	}
-	if req.AvatarURL == "" {
-		writeError(w, http.StatusBadRequest, "avatar_url is required")
+	if err := decodeJSON(r, &req); err != nil || (req.AvatarURL == nil) == (req.AvatarAssetID == nil) {
+		writeError(w, http.StatusBadRequest, "provide either avatar_url or avatar_asset_id")
 		return
 	}
 
-	existing, err := h.store.GetUser(r.Context(), id)
-	if err != nil || existing == nil {
-		writeError(w, http.StatusNotFound, "user not found")
-		return
+	var avatarURL, assetID string
+	if req.AvatarURL != nil {
+		avatarURL = *req.AvatarURL
+		if avatarURL == "" {
+			writeError(w, http.StatusBadRequest, "avatar_url is required")
+			return
+		}
+	} else {
+		assetID = *req.AvatarAssetID
+		if assetID != "" && h.avatars.find(assetID) == nil {
+			writeError(w, http.StatusBadRequest, "unknown avatar_asset_id")
+			return
+		}
 	}
-	existing.AvatarURL = req.AvatarURL
-	if err := h.store.UpdateUser(r.Context(), existing); err != nil {
+
+	if err := h.store.UpdateAvatarSelection(r.Context(), id, assetID, avatarURL); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to update avatar")
 		return
 	}
-	writeJSON(w, http.StatusOK, existing)
+	h.Get(w, r)
 }
 
 func (h *UserHandler) UpdateLineColor(w http.ResponseWriter, r *http.Request) {

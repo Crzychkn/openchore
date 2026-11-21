@@ -1079,6 +1079,15 @@
       "manageHint": "Chores, people and rewards",
       "open": "{{name}}: settings",
       "pictureStyle": "Style {{n}}",
+      "pictureLibrary": "Picture library",
+      "pictureGenerated": "Generated pictures",
+      "pictureInitials": "Initials",
+      "pictureLibraryUnavailable": "The picture library could not load.",
+      "avatarAssets": {
+        "fox": "Fox",
+        "saturn": "Saturn",
+        "sprout": "Sprout"
+      },
       "pictureStyles": "Picture styles",
       "pictureTitle": "Your picture",
       "readAloud": "Read chores aloud",
