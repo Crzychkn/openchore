@@ -1,0 +1,32 @@
+name: openchore-custom-dev
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Containerfile
+    working_dir: /
+    environment:
+      TZ: ${OPENCHORE_DEV_TZ:-America/Los_Angeles}
+      CONFIG_PATH: /app/config/config.yaml
+      DB_PATH: /data/openchore.db
+      PORT: "8080"
+    volumes:
+      - dev-data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/api/users"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+  web:
+    build:
+      context: ./web
+      dockerfile: Containerfile
+    ports:
+      - "127.0.0.1:${OPENCHORE_DEV_PORT:-18080}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  dev-data:

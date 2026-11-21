@@ -343,6 +343,7 @@ Two things need your attention:
 
 ## Documentation
 
+- [Customization fork](docs/custom/README.md)
 - [Signing in](docs/authentication.md): PINs, parents, sessions, single sign-on
 - [Farm pets](docs/pets.md): moods, the nightly check, pet-care rewards
 - [AI features](docs/ai.md): photo review, summaries, voices, choosing a model
